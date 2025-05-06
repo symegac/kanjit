@@ -21,6 +21,8 @@ KEYWORDS = {
     '内': "IN", '內': "IN",
     # program flow
     '者': "IF", '者': "IF",
+    '別': "ELSEIF",
+    '他': "ELSE",
     '。': "ENDCLS",
     '、': "CTXSEP",
     # loops
@@ -41,16 +43,16 @@ KEYWORDS = {
     # relational ops
     '当': "EQ", '當': "EQ",
     '超': "GT",
-    '未満': "LT", '未滿': "LT",
-    '以上': "GE",
-    '以下': "LE",
+    "未満": "LT", "未滿": "LT", '劣': "LT",
+    "以上": "GE",
+    "以下": "LE",
     '中': "INBETW",
-    '乃至': "ANDBETW",
+    "乃至": "ANDBETW",
     # logical ops
     '及': "AND",
     '又': "OR",
     '若': "MAYBE",
-    '': "NOT",
+    '不': "NOT",
     # directional ops (bitshr, rotr, trimstr, ceasarchar)
     '右': "RIGHT",
     '左': "LEFT",
@@ -59,6 +61,7 @@ KEYWORDS = {
     '言': "STR",
     '数': "INT", '數': "INT",
     "分数": "FLOAT",
+    "有無": "BOOL",
     # booleans
     '空': "NULL",
     '偽': "FALSE", '僞': "FALSE",
@@ -66,10 +69,10 @@ KEYWORDS = {
     '零': "ZERO", '〇': "ZERO",
     '壱': "ONE", '壹': "ONE", '弌': "ONE", '一': "ONE",
     # strings
-    '「': "LCHAR",
-    '」': "RCHAR",
-    '『': "LSTR",
-    '』': "RSTR",
+    '「': "LTXT",
+    '」': "RTXT",
+    '『': "LARR",
+    '』': "RARR",
     '丈': "LEN",
     '伸': "APPEND",
     '切': "SLICE",
@@ -96,7 +99,7 @@ DIGITS = (
     '萬', '万',
     '億'
 )
-MULTI = ('以', '未', '乃', '分')
+MULTI = ('以', '未', '乃', '分', '有', *DIGITS)
 
 def lex(
     source: str | list[str],
@@ -158,14 +161,27 @@ def lex(
                 last_index = index
                 last_line = line
                 continue
-            # add if yet unidentified
-            buffer += char
+            # add if yet unidentified or no digit sequence is relevant
+            if not buffer or (char not in DIGITS and buffer[-1] not in DIGITS):
+                buffer += char
+            # if digit sequence is relevant
+            elif (char in DIGITS and buffer[-1] not in DIGITS) or (char not in DIGITS and buffer[-1] in DIGITS):
+                tokens.append(push(buffer, last_line, last_index, line, index, bf=True))
+                last_index = index - 1
+                last_line = line
+                buffer = char
             # check if end multichar keyword
             if buffer in keywords:
                 tokens.append(push(buffer, last_line, last_index, line, index))
                 last_index = index
                 last_line = line
                 buffer = ''
+            # if not, push the monochar version
+            elif buffer[0] in ('以', '分'):
+                tokens.append(push(buffer[0], last_line, last_index, line, index, bf=True))
+                last_index = index - 1
+                last_line = line
+                buffer = buffer[1]
         if not buffer:
             last_line += 1
             last_index = -1
