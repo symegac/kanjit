@@ -1,0 +1,263 @@
+start: (instruction | block)+
+
+?instruction: statement "。"
+
+?statement: simple_statement
+         | function
+         | loop_line
+         | if_line
+?simple_statement.10: declaration
+                    | assignment
+                    | function_call
+
+declaration: id type "也"
+// assignment: type? "所" id "是" value "也"
+assignment: type? id "是"? value "也"
+
+?id: identifier | parent_child
+identifier: (ASCII | JAPANESE)+
+parent_child: id "ヶ" child
+?child: (property | index)
+property: LEN | id
+index: CURR | integer
+
+?block: (loop_block | if_block) "。"
+
+loop_line: iterable "〱" (simple_statement | if_line) "〲"
+loop_block: iterable "〱" (instruction | block)+ "〲"
+iterable: id | optionals
+optionals: "以々"
+
+?if_line.20: if simple_statement ("他" simple_statement)? | backassignment
+?if_block: if then ("別" elif)? ("他" else)? "了"
+if: (bool_block bool_comp)* bool_block ("者" | "者")
+?bool_block.10: comparison | value | id
+then: "斯" "。" instruction+
+?elif: if then
+else: "斯" "。" instruction+
+
+backassignment: if back_part
+back_part: (value | id | action (value | id)) "之"
+// backassignment_block: if back_part ("。" "別" if back_part)? ("。" "他" back_part)? "。" "了"
+
+bool_comp: AND | OR | NOT
+         | NOT AND | NOT OR
+comparison: (value | id) comparative_operator (value | id) | between
+comparative_operator: EQ | GT | LT | GE | LE
+                    | NOT comparative_operator
+between: (value | id) "不"? "中" (value | id) "乃至" (value | id)
+
+
+do_self: (value | id) "自" action (value | id)
+action: function_name | binary_operator
+
+unary_operator: INCR | DECR
+binary_operator: ADD | SUB | MULT | DIV | HALF | DOUBLE | POW | SQRT
+
+function: "定" function_header "斯" "。" function_body "了"
+?function_header: parameters "を" function_name ("以" optional_parameters)? ("成" out_parameters)?
+?parameters: parameter (parameter_separator? parameter)*
+parameter: type id
+?optional_parameters: optional_parameter (parameter_separator? optional_parameter)*
+optional_parameter: parameter default?
+?out_parameters: out_parameter (parameter_separator? out_parameter)*
+out_parameter: parameter default?
+?parameter_separator: AND | CTXSEP
+default: "若" (value | id)
+function_body: (instruction | block)* returner?
+returner: "成" (value | id)? "。"
+
+value: single_value
+     | multi_value
+     | NULL
+?single_value: boolean
+             | character
+             | number
+?multi_value: bitarray
+            | string
+            | sequence
+            | structure
+            | bitmap
+            | matrix
+            | catalog
+            | bitmap
+// 1d
+boolean: TRUE | FALSE
+character: "【" TEXT? "】"
+?number: integer
+       | floating_point
+sign: NEG?
+integer: sign? DIGITS
+floating_point: sign? DIGITS? "分" DIGITS
+// 2d
+bitarray: ("〈" | "<") boolean+ ("〉" | ">")
+string: "「" TEXT* "」" | "「" (character | id)? ("、" (character | id))* "」"
+sequence: ("（" | "(") (number | id)? ("、" (number | id))* ("）" | ")")
+dictionary: "weerh"
+structure: "aaaaaaa"
+// 3d
+bitmap: ("《" | "<") bitarray+ ("》" | ">")
+matrix: ("［" | "[") (sequence | id)? ("、" (sequence | id))* ("］" | "]")
+catalog: "『" (string | id)? ("、" (string | id))* "』"
+
+
+function_call: call_parameters "を" function_name ("以" call_optionals)? | do_self
+?call_parameters: call_parameter (parameter_separator? call_parameter)*
+call_parameter.20: value | id // call_parameter.2
+?call_optionals: call_optional (parameter_separator? call_optional)*
+call_optional: id value
+function_name: id | builtins
+
+TEXT: (ASCII | JAPANESE | DIGITS)+
+JAPANESE: (KANJI | HIRAGANA | KATAKANA)+
+KANJI: "入" | "出" | "迄" | "毎" | "力"
+HIRAGANA: "ゟ"
+KATAKANA: ("ァ".."ン" | "ー")+
+ASCII: "A".."ÿ"
+DIGITS: DIGIT+ | JAPANESE_DIGIT+
+DIGIT: "0".."9"
+JAPANESE_DIGIT: ZERO
+              | ONE | TWO | THREE | FOUR | FIVE
+              | SIX | SEVEN | EIGHT | NINE | TEN
+              | TWENTY | THIRTY | FORTY
+              | HUNDRED | TENSCORE
+              | THOUSAND | MYRIAD
+              | LARGE_NUMBER
+NEG: "負"
+ZERO: "零" | "〇"
+ONE: "一" | "壱" | "壹" | "弌"
+TWO: "貳" | "貮" | "弍" | "弐" | "二"
+THREE: "參" | "参" | "弎" | "三"
+FOUR: "肆" | "亖" | "四"
+FIVE: "伍" | "五"
+SIX: "陸" | "六"
+SEVEN: "漆" | "柒" | "質" | "七"
+EIGHT: "捌" | "八"
+NINE: "玖" | "九"
+TEN: "拾" | "什" | "十"
+TWENTY: "卄" | "廿"
+THIRTY: "卅" | "丗"
+FORTY: "卌"
+HUNDRED: "陌" | "佰" | "百"
+TENSCORE: "皕"
+THOUSAND: "阡" | "仟" | "千"
+MYRIAD: "萬" | "万"
+LARGE_NUMBER: "億" | "兆" | "京" | "垓"
+            | ("秭" | "𥝱") | ("穰" | "穣")
+            | "溝" | "澗" | "正" | "載"
+            | "極" | ("恒河沙" | "恆河沙")
+            | ("阿僧祇" | "阿僧祇") | "那由他"
+            | "不可思議" | ("無量大數" | "無量大数")
+
+DECL: "也"
+ASS: "是"
+BACKASS: "之"
+SELF: "自"
+FUNC: "定"
+PARAM: "を"
+WITH: "以"
+RETURN: "成"
+STARTDEF: "斯"
+ENDSECT: "了"
+EXISTE: "有"
+NEXISTE: "無"
+CHILD: "的" | "ヵ" | "ヶ"
+IN: "內" | "内"
+IF: "者" | "者"
+ENDCLS: "。"
+CTXSEP: "、"
+LOOP: "〱"
+ENDLOOP: "〲"
+CURR: "今"
+ADD: "足"
+SUB: "引"
+MULT: "掛"
+DIV: "割"
+INCR: "增" | "増"
+DECR: "減"
+HALF: "半"
+DOUBLE: "倍"
+POW: "乘" | "乗" | "冪" | "乘冪" | "乗冪"
+SQRT: "根"
+EQ: "當" | "当"
+GT: "勝" | "超"
+LT: "劣" | "未滿" | "未満"
+GE: "以上"
+LE: "以下"
+INBETW: "中"
+ANDBETW: "乃至"
+AND: "及"
+OR: "又"
+MAYBE: "若"
+NOT: "不"
+RIGHT: "右"
+LEFT: "左"
+
+type: single_type
+    | array_type
+    | multi_type
+    | matrix_type
+size: DIGITS
+msize: DIGITS
+     | -> variable
+rows: msize
+cols: msize
+single_type: CHAR -> character
+           | INT -> integer
+           | FLOAT -> floating_point
+           | BOOL -> boolean
+array_type: size single_type REP -> array
+multi_type: BITMASK -> bitmask
+          | STR -> string
+          | SEQUENCE -> sequence
+          | STRUCT -> structure
+          | DICT -> dictionary
+matrix_type: rows "行" cols "列" -> matrix
+           | cols "列" rows "行" -> matrix
+           | rows "型" cols ("録" | "錄") -> catalog
+           | cols ("録" | "錄") rows "型" -> catalog
+           | rows "緯" cols ("經" | "経") -> bitmap
+           | cols ("經" | "経") rows "緯" -> bitmap
+
+CHAR: "字"
+STR: "言"
+INT: "數" | "数"
+FLOAT: "分數" | "分数"
+BOOL: TRUE FALSE
+BITMASK: EXISTE NEXISTE
+SEQUENCE: "列"
+MATRIX: "行列"
+CATALOG: "型錄" | "型録"
+BITMAP: "經緯" | "経緯"
+STRUCT: "様々"
+DICT: "辭書" | "辞書"
+
+NULL: "空"
+FALSE: "僞" | "偽"
+TRUE: "眞" | "真"
+
+?builtins: APPEND | SLICE
+LEN: "丈"
+APPEND: "伸"
+SLICE: "切"
+REP: "々"
+DECSEP: "分"
+
+LCHAR: "【" | "'"
+RCHAR: "】" | "'"
+LSTR: "「" | "\""
+RSTR: "」" | "\""
+LBIT: "〈" | "<"
+RBIT: "〉" | ">"
+LSEQ: "（" | "("
+RSEQ: "）" | ")"
+LMATR: "［" | "["
+RMATR: "］" | "]"
+LSET: "{"
+RSET: "}"
+LARR: "『"
+RARR: "』"
+
+WHITESPACE: (" " | "　" | "\t" | "\n" | "\r")+
+%ignore WHITESPACE
+%ignore /※.*※/
