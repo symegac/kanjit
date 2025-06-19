@@ -10,10 +10,15 @@ start: (instruction | block)+
                     | assignment
                     | function_call
 
+// declaration & assignment
 declaration: id type "也"
-// assignment: type? "所" id "是" value "也"
 assignment: type? id "是"? value "也"
+     // assignment: type? "所" id "是" value "也"
+backassignment: if back_part
+back_part: (value | id | action (value | id)) "之"
+     // backassignment_block: if back_part ("。" "別" if back_part)? ("。" "他" back_part)? "。" "了"
 
+// identifiers & sub
 ?id: identifier | parent_child
 identifier: (ASCII | JAPANESE)+
 parent_child: id "ヶ" child
@@ -21,13 +26,14 @@ parent_child: id "ヶ" child
 property: LEN | id
 index: CURR | integer
 
+// blocks
 ?block: (loop_block | if_block) "。"
-
+// iteration
 loop_line: iterable "〱" (simple_statement | if_line) "〲"
 loop_block: iterable "〱" (instruction | block)+ "〲"
 iterable: id | optionals
 optionals: "以々"
-
+// comparison
 ?if_line.20: if simple_statement ("他" simple_statement)? | backassignment
 ?if_block: if then ("別" elif)? ("他" else)? "了"
 if: (bool_block bool_comp)* bool_block ("者" | "者")
@@ -36,10 +42,9 @@ then: "斯" "。" instruction+
 ?elif: if then
 else: "斯" "。" instruction+
 
-backassignment: if back_part
-back_part: (value | id | action (value | id)) "之"
-// backassignment_block: if back_part ("。" "別" if back_part)? ("。" "他" back_part)? "。" "了"
-
+// operators
+unary_operator: INCR | DECR
+binary_operator: ADD | SUB | MULT | DIV | HALF | DOUBLE | POW | SQRT
 bool_comp: AND | OR | NOT
          | NOT AND | NOT OR
 comparison: (value | id) comparative_operator (value | id) | between
@@ -47,13 +52,8 @@ comparative_operator: EQ | GT | LT | GE | LE
                     | NOT comparative_operator
 between: (value | id) "不"? "中" (value | id) "乃至" (value | id)
 
-
-do_self: (value | id) "自" action (value | id)
-action: function_name | binary_operator
-
-unary_operator: INCR | DECR
-binary_operator: ADD | SUB | MULT | DIV | HALF | DOUBLE | POW | SQRT
-
+// functions
+// definitions
 function: "定" function_header "斯" "。" function_body "了"
 ?function_header: parameters "を" function_name ("以" optional_parameters)? ("成" out_parameters)?
 ?parameters: parameter (parameter_separator? parameter)*
@@ -66,7 +66,18 @@ out_parameter: parameter default?
 default: "若" (value | id)
 function_body: (instruction | block)* returner?
 returner: "成" (value | id)? "。"
+// calls
+function_call: call_parameters "を" function_name ("以" call_optionals)? | do_self
+?call_parameters: call_parameter (parameter_separator? call_parameter)*
+call_parameter.20: value | id // call_parameter.2
+?call_optionals: call_optional (parameter_separator? call_optional)*
+call_optional: id value
+function_name: id | builtins
+// self-action
+do_self: (value | id) "自" action (value | id)
+action: function_name | binary_operator
 
+// values
 value: single_value
      | multi_value
      | NULL
@@ -100,19 +111,13 @@ bitmap: ("《" | "<") bitarray+ ("》" | ">")
 matrix: ("［" | "[") (sequence | id)? ("、" (sequence | id))* ("］" | "]")
 catalog: "『" (string | id)? ("、" (string | id))* "』"
 
-
-function_call: call_parameters "を" function_name ("以" call_optionals)? | do_self
-?call_parameters: call_parameter (parameter_separator? call_parameter)*
-call_parameter.20: value | id // call_parameter.2
-?call_optionals: call_optional (parameter_separator? call_optional)*
-call_optional: id value
-function_name: id | builtins
-
+// text & numbers
 TEXT: (ASCII | JAPANESE | DIGITS)+
 JAPANESE: (KANJI | HIRAGANA | KATAKANA)+
 KANJI: "入" | "出" | "迄" | "毎" | "力"
-HIRAGANA: "ゟ"
-KATAKANA: ("ァ".."ン" | "ー")+
+HIRAGANA: "ぁ".."ゑ" | "ん".."ゟ" | "𛄲".."𛅒" | "ー" | "゠" | HENTAIGANA // no を
+HENTAIGANA: "𛀁".."𛄢"
+KATAKANA: "ァ".."ヵ" | "ヷ".."ヿ" | "𛀀" | "𛅕".."𛅧" | "ㇰ".."ㇿ" |  "ｦ".."ﾟ" | "゠" // no ヶ
 ASCII: "A".."ÿ"
 DIGITS: DIGIT+ | JAPANESE_DIGIT+
 DIGIT: "0".."9"
@@ -149,6 +154,7 @@ LARGE_NUMBER: "億" | "兆" | "京" | "垓"
             | ("阿僧祇" | "阿僧祇") | "那由他"
             | "不可思議" | ("無量大數" | "無量大数")
 
+// keywords
 DECL: "也"
 ASS: "是"
 BACKASS: "之"
@@ -192,6 +198,31 @@ MAYBE: "若"
 NOT: "不"
 RIGHT: "右"
 LEFT: "左"
+NULL: "空"
+FALSE: "僞" | "偽"
+TRUE: "眞" | "真"
+
+// builtins
+?builtins: APPEND | SLICE
+LEN: "丈"
+APPEND: "伸"
+SLICE: "切"
+REP: "々"
+DECSEP: "分"
+
+// types
+CHAR: "字"
+STR: "言"
+INT: "數" | "数"
+FLOAT: "分數" | "分数"
+BOOL: TRUE FALSE
+BITMASK: EXISTE NEXISTE
+SEQUENCE: "列"
+MATRIX: "行列"
+CATALOG: "型錄" | "型録"
+BITMAP: "經緯" | "経緯"
+STRUCT: "様々"
+DICT: "辭書" | "辞書"
 
 type: single_type
     | array_type
@@ -219,30 +250,7 @@ matrix_type: rows "行" cols "列" -> matrix
            | rows "緯" cols ("經" | "経") -> bitmap
            | cols ("經" | "経") rows "緯" -> bitmap
 
-CHAR: "字"
-STR: "言"
-INT: "數" | "数"
-FLOAT: "分數" | "分数"
-BOOL: TRUE FALSE
-BITMASK: EXISTE NEXISTE
-SEQUENCE: "列"
-MATRIX: "行列"
-CATALOG: "型錄" | "型録"
-BITMAP: "經緯" | "経緯"
-STRUCT: "様々"
-DICT: "辭書" | "辞書"
-
-NULL: "空"
-FALSE: "僞" | "偽"
-TRUE: "眞" | "真"
-
-?builtins: APPEND | SLICE
-LEN: "丈"
-APPEND: "伸"
-SLICE: "切"
-REP: "々"
-DECSEP: "分"
-
+// type markers
 LCHAR: "【" | "'"
 RCHAR: "】" | "'"
 LSTR: "「" | "\""
@@ -258,6 +266,8 @@ RSET: "}"
 LARR: "『"
 RARR: "』"
 
+// ignore whitespace
 WHITESPACE: (" " | "　" | "\t" | "\n" | "\r")+
 %ignore WHITESPACE
+// ignore comments
 %ignore /※.*※/
